@@ -1,4 +1,14 @@
 // app/routes.js
+var mysql = require('mysql');
+var connection = mysql.createConnection(
+  {
+    host: 'localhost',
+    user: 'root',
+    password: 'admin1234',
+    database: 'loginapp'
+  }
+);
+
 module.exports = function(app, passport) {
 
 	// =====================================
@@ -48,19 +58,78 @@ module.exports = function(app, passport) {
 	});
 
 	// process the signup form
+
 	app.post('/signup', passport.authenticate('local-signup', {
 		successRedirect : '/profile', // redirect to the secure profile section
 		failureRedirect : '/signup', // redirect back to the signup page if there is an error
 		failureFlash : true // allow flash messages
 	}));
 
+
 	// =====================================
 	// PROFILE SECTION =========================
 	// =====================================
 	app.get('/profile', isLoggedIn, function(req, res) {
-		res.render('profile.ejs', {
-			user : req.user
+
+		connection.query("SELECT * FROM Books", function(err, rows) {
+
+
+			if (err){
+				console.log(err);
+			}
+			if (rows.length) {
+				if(req.user.profile > 1){
+					res.render('publisher.ejs', {
+						user : req.user,
+						books : rows
+					});
+				}else {
+					res.render('reader.ejs', {
+						user : req.user,
+						books : rows
+					});
+				}
+			}else {
+				if(req.user.profile > 1){
+					res.render('publisher.ejs', {
+						user : req.user,
+						books : rows
+					});
+				} else {
+					res.render('reader.ejs', {
+						user : req.user,
+						books : rows
+					});
+				}
+			}
 		});
+
+
+	});
+
+	// =====================================
+	// Save a ew Book ======================
+	// =====================================
+	app.post('/newbook',function (req,res) {
+		var insertQuery = "INSERT INTO Books ( Nombre, Autor) values (?,?)";
+		connection.query(insertQuery,[req.body.nombre, req.body.autor],function(err, rows) {
+			if(err){
+				console.log(err);
+			}
+		});
+		res.redirect('/profile');
+	});
+	// =====================================
+	// Delete a book =======================
+	// =====================================
+	app.post('/deletebook', function(req, res) {
+		var insertQuery = "DELETE FROM Books WHERE id = ?";
+		connection.query(insertQuery,[req.body.deletebook],function(err, rows) {
+			if(err){
+				console.log(err);
+			}
+		});
+		res.redirect('/profile');
 	});
 
 	// =====================================
@@ -70,6 +139,8 @@ module.exports = function(app, passport) {
 		req.logout();
 		res.redirect('/');
 	});
+
+
 };
 
 // route middleware to make sure
